@@ -6,6 +6,8 @@ The core idea behind this project is:
 2. Allow writing short and easy-to-use scripts 😊
 3. It's free! 💃
 
+And of course, exploiting Google Docs provides versioning and **collaborating** for no charge!
+
 Here is the simplest usage example:
 ```py
 from translinguer import Translinguer
@@ -29,11 +31,11 @@ now I hope it can benefit other developers on various platforms!
 # Workflow
 My typical translating process consists of these steps:
 
-- (Optionally) import existing raw locale files (json, ini, cfg, csv) and upload to Google Sheets
+- *Optionally: Import existing raw locale files (json, ini, cfg, csv) and upload to Google Sheets*
 - Write/update texts in a Google Sheet (with myself, friends and volunteers, or Google Translate and ChatGPT)
-- Download and parse texts from the Google Sheet
-- (Optionally) Save into local cache
-- Export texts to a required format (json, ini, cfg, csv)
+- Download and parse source texts from the Google Sheet
+- *Optionally: Save into local cache*
+- Export texts to result locale files of required format (json, ini, cfg, csv)
 
 But you may have a really different process, and Translinguer will still suit your needs!
 
@@ -154,17 +156,46 @@ and raw/result files, which is more readable and just fancy! ✨
 The majority of methods print logs to stdout for a user to know what's going on.
 
 ## 2. Real example
-Here is usage for one of my open source Factorio mods:
+Here is usage for [MD2R](https://mods.factorio.com/mod/Mining_Drones_Remastered),
+one of my open source Factorio mods:
 - [Python code](https://github.com/AivanF/factorio-Mining-Drones-Remastered/blob/main/scripts/locales.py)
 - [Google Sheet texts](https://docs.google.com/spreadsheets/d/11H5p7jTiUQckTrTv250iNWP41sX4aKNjZMAzm3t_UcI/edit)
 
-## 3. Multi-project setup
+## 3. Multi-source setup
+You can have multiple source files for one project uniting them into single Transliguer document.
+This is useful if you want separate translators access to the files (idk why) or store some pages / sections independently.
+To achieve it, simply load each file with the same Translinguer instance:
+
+```py
+trans = Translinguer()
+trans.load_from_gsheets(name="My-Project-Eng")
+trans.load_from_gsheets(name="My-Project-Tur")
+trans.load_from_gsheets(name="My-Project-Ukr")
+```
+
+## 4. Multi-project setup
 You can work with multiple projects in a single document on separate pages with different languages.
 This may be useful for several small or related sets of texts so that translators can work on them in one place.
 
-TODO: add an example...
+To achieve this, you can either download pages of a single project only:
 
-## 4.  Customisation
+```py
+projects = Translinguer()
+projects.load_from_gsheets(name="Many-Projects", page_filter={"project_1"})
+projects.save_cfg_by_language_page("__output_folder__")
+```
+
+Or download all the pages but export specific pages only:
+```py
+project1 = Translinguer()
+project1.load_from_gsheets(name="Many-Projects")
+project1.save_cfg_by_language_page("__output_folder__", page_filter={"project_1"})
+```
+
+Actually, you can combine 3&4, download single page from different source files...
+More flexibility for the Flexibility God! 😈
+
+## 5.  Customisation
 You can easily customise or extend Translinguer with:
 - New formats for reading/writing – just have a look at the source code.
 - Your own validation logic, similarly to embedded `validate` method. Example use cases:
@@ -177,9 +208,21 @@ You can easily customise or extend Translinguer with:
 Already wanna try it out? 😁
 ```bash
 pip install Translinguer
-# If you also wanna use Google Sheets:
+```
+
+Additional dependency in case you also would like to use Google Sheets:
+```bash
 pip install gspread
 ```
+
+Then you'll need to authenticate into Google Drive & Sheets.
+To do this, create a service account, download its credentials
+(preferably saving to `gsheets-credentials.json`),
+assign it access to these services, share access to the files you want.
+
+You can find more details here:
+- https://github.com/burnash/gspread/issues/512
+- https://youtu.be/vISRn5qFrkM
 
 
 # Docs
@@ -194,7 +237,7 @@ Here is a specification of Translinguer class 🧩
 ### General methods
 
 ### `__init__`
-- `languages: List[str], optional` – generally there is no need to set this manually
+- `languages: List[str], optional` – generally there is no need to set this manually.
 - `lang_mapper: LangRenamer = Dict[str, str], optional` – allows
   to have different language names in source tables and raw/result files.
   Defaults to `ProxyDict` which stores nothing and simply returns given key as a value.
@@ -227,9 +270,14 @@ Loads document from `self.cache` file.
 ### 1. GSh (Google Sheets)
 ### `load_from_gsheets`
 Updates current document with texts from specified Google Sheet table.
+
+Client object can be provided manually or will be created using
+`DEFAULT_GSHEETS_CRED_FILE = 'gsheets-credentials.json'` to authenticate.
+
 Sections and comments are supported, their syntax can be configured with method arguments.
 Note that either `name` or `key` must be provided.
 
+- `client: gspread.Client, optional` – gspread client object
 - `name: str, optional` – Google sheet filename
 - `key: str, optional` – Google sheet URL key
 - `page_filter: set[str], optional` – Parses sheets with specified names only
