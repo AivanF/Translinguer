@@ -1,6 +1,6 @@
-from typing import TYPE_CHECKING, Any, Union, Optional
-from .base import TranslinguerBase, Locales, Page, Section
-from .utils import dict_get
+from typing import TYPE_CHECKING, Any, Union, Optional, List
+
+from .base import TranslinguerBase, PageFilter, Locales, Page, Section
 
 DEFAULT_GSHEETS_CRED_FILE = 'gsheets-credentials.json'
 
@@ -12,8 +12,8 @@ else:
 
 class TranslinguerGsheets:
     def _google_auth(
-        self: SELF,
-        credfile: str = DEFAULT_GSHEETS_CRED_FILE,
+            self: SELF,
+            credfile: str = DEFAULT_GSHEETS_CRED_FILE,
     ):
         '''
         Provides Google Sheets auth from a credentials file
@@ -40,16 +40,16 @@ class TranslinguerGsheets:
         return client
 
     def load_from_gsheets(
-        self: SELF,
-        client: Optional[object] = None,
-        name: Optional[str] = None,
-        key: Optional[str] = None,
-        only_page: Optional[str] = None,
-        merge_pages: Optional[str] = None,
-        comment_prefix: str = '#',
-        section_prefix: str = '[',
-        section_postfix: str = ']',
-    ):
+            self: SELF,
+            client: Optional[object] = None,
+            name: Optional[str] = None,
+            key: Optional[str] = None,
+            page_filter: PageFilter = None,
+            merge_pages: Optional[str] = None,
+            comment_prefix: str = '#',
+            section_prefix: str = '[',
+            section_postfix: str = ']',
+    ) -> SELF:
         '''
         Uses this lib:
         https://docs.gspread.org/
@@ -64,9 +64,9 @@ class TranslinguerGsheets:
         key: str, optional
             Google sheet URL key
 
-        only_page : str, optional
-            Parses single sheet with given name
-        merge_pages : str, optional
+        page_filter: set[str], optional
+            Parses sheets with specified names only
+        merge_pages: str, optional
             Merge sheets into one page of given name
 
         comment_prefix: str
@@ -94,12 +94,11 @@ class TranslinguerGsheets:
         worksheets = document.worksheets()
         print(str(len(worksheets)) + ' pages:')
 
-        texts: Locales = {}
         page: Page
         section: Section
 
         for sheet in worksheets:
-            if only_page and only_page != sheet.title:
+            if page_filter and sheet.title not in page_filter:
                 continue
 
             content = sheet.get_all_values()
@@ -108,20 +107,22 @@ class TranslinguerGsheets:
             header = content[0]
             content = content[1:]
             assert header[0] == 'key', header
-            languages = header[1:]
+            languages: List[str] = header[1:]
             if len(self.languages) < len(languages):
                 self.languages = languages
 
             print(f'- Page "{sheet.title}": {len(content)} rows.')
             if merge_pages:
-                page = dict_get(texts, merge_pages)
-                section = dict_get(page, sheet.title)
+                page = self.get_page(merge_pages)
+                section = page.get_section(sheet.title)
             else:
-                page = dict_get(texts, sheet.title)
-                section = dict_get(page, '')
+                page = self.get_page(sheet.title)
+                section = page.get_section('')
+            if len(page.languages) < len(languages):
+                page.languages = languages
 
             for row in content:
-                key = row[0]
+                key = row[0].strip()
                 # Ignore empty lines
                 if len(key) < 1:
                     continue
@@ -131,14 +132,12 @@ class TranslinguerGsheets:
                 # Handle sections
                 if key.startswith(section_prefix):
                     key = key[len(section_prefix):-len(section_postfix)]
-                    section = dict_get(page, key)
+                    section = page.get_section(key)
                     continue
                 # Handle texts finally
                 for i, lng in enumerate(languages):
-                    entry = dict_get(section, key)
-                    entry[lng] = row[i + 1]
+                    entry = section.get_entry(key)
+                    entry.by_language[lng] = row[i + 1]
 
-        if len(texts) == 0:
-            raise ValueError('Google Sheets not found')
-        self.texts = texts
         self._set_update(f'Google Sheets "{name}"')
+        return self

@@ -1,2 +1,4 @@
 from .result import Translinguer
-__all__ = ('Translinguer',)
+from .utils import dict_reversed
+
+__all__ = ('Translinguer', 'dict_reversed')

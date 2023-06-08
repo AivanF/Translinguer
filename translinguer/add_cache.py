@@ -1,37 +1,36 @@
+from typing import TYPE_CHECKING, Any, Union
 import codecs
 import json
-from .base import TranslinguerBase as base, UNKNOWN
+from .base import TranslinguerBase, Page, DocumentDict
 
-SYSTEM_KEY = '_sys_'
+if TYPE_CHECKING:
+    SELF = Union[TranslinguerBase, 'TranslinguerCache']
+else:
+    SELF = Any
+
+DEFAULT_CACHE_FILE = 'texts.json'
 
 
 class TranslinguerCache:
-    def serialize(self: base, sort: bool):
-        target = {}
-        target.update(self.texts)
-        target[SYSTEM_KEY] = dict(
-            languages=self.languages,
-            last_update=self.last_update,
-            source=self.source,
-        )
-        return json.dumps(target, indent=4, sort_keys=True, ensure_ascii=False)
-
-    def deserialize(self: base, data):
-        texts = json.loads(data)
-        sys = texts[SYSTEM_KEY]
-        del texts[SYSTEM_KEY]
-        self.source = sys.get('source', UNKNOWN)
-        self.last_update = sys['last_update']
-        if len(sys['languages']) > len(self.languages):
-            self.languages = sys['languages']
-        self.texts = texts
-
-    def save_cache(self: base, sort: bool = False):
-        with codecs.open(self.cache, 'w', encoding='utf8') as file:
-            file.write(self.serialize(sort=sort))
+    def save_cache(self: SELF, filename: str = None, sort: bool = False):
+        filename = filename or DEFAULT_CACHE_FILE
+        with codecs.open(filename, 'w', encoding='utf8') as file:
+            file.write(json.dumps(self.to_dict(), indent=4, sort_keys=sort, ensure_ascii=False))
         print('-- JSON cache saved.')
 
-    def load_cache(self: base):
+    def load_cache(self: SELF, filename: str = None) -> SELF:
         print('-- Loading from JSON cache...')
-        with codecs.open(self.cache, 'r', encoding='utf8') as file:
-            self.deserialize(file.read())
+        filename = filename or DEFAULT_CACHE_FILE
+        with codecs.open(filename, 'r', encoding='utf8') as file:
+            data: DocumentDict = json.loads(file.read())
+            self.from_dict(data)
+        return self
+
+    def from_dict(self: SELF, data: DocumentDict):
+        self.source = data['source']
+        self.last_update = data['last_update']
+        self.languages = data['languages']
+        self.pages = {
+            page_name: Page(page_name, page)
+            for page_name, page in data['pages'].items()
+        }
