@@ -5,7 +5,7 @@ from .base import TranslinguerBase
 
 
 class TranslinguerIni:
-    def save_ini_page(
+    def save_ini(
         self: TranslinguerBase,
         output_path: str, only_page: Optional[str] = None,
     ):

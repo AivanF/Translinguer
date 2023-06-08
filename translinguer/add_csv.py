@@ -1,3 +1,4 @@
+from typing import Optional
 import io
 import csv
 from .base import TranslinguerBase
@@ -6,7 +7,8 @@ from .utils import dict_get_reversed
 
 class TranslinguerCsv:
     def to_csv(
-        self: TranslinguerBase, page=None, sections=False, delimiter='\t',
+        self: TranslinguerBase, only_page: Optional[str] = None,
+        sections=False, delimiter='\t',
     ) -> str:
         output = io.StringIO()
         writer = csv.writer(output, delimiter=delimiter)
@@ -14,19 +16,11 @@ class TranslinguerCsv:
             dict_get_reversed(self.lang_mapper, lng) for lng in self.languages
         ]
         writer.writerow(header)
-        if page is None:
-            for page in self.texts.values():
-                for section_name, section in page.items():
-                    if len(section_name) > 0:
-                        writer.writerow([f'[{section_name}]'])
-                    writer.writerows([
-                        [key] + [entry.get(lng) for lng in self.languages]
-                        for key, entry in section.items()
-                    ])
-        else:
-            page = self.texts[page]
+        for page_name, page in self.texts.items():
+            if only_page and page_name != only_page:
+                continue
             for section_name, section in page.items():
-                if len(section_name) > 0:
+                if sections and len(section_name) > 0:
                     writer.writerow([f'[{section_name}]'])
                 writer.writerows([
                     [key] + [entry.get(lng) for lng in self.languages]

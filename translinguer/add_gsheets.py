@@ -1,13 +1,18 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Union, Optional
 from .base import TranslinguerBase, Locales, Page, Section
 from .utils import dict_get
 
 DEFAULT_GSHEETS_CRED_FILE = 'gsheets-credentials.json'
 
+if TYPE_CHECKING:
+    SELF = Union[TranslinguerBase, 'TranslinguerGsheets']
+else:
+    SELF = Any
+
 
 class TranslinguerGsheets:
     def _google_auth(
-        self: TranslinguerBase,
+        self: SELF,
         credfile: str = DEFAULT_GSHEETS_CRED_FILE,
     ):
         '''
@@ -35,10 +40,10 @@ class TranslinguerGsheets:
         return client
 
     def load_from_gsheets(
-        self: TranslinguerBase,
-        client: Optional[object],
-        name: Optional[str],
-        key: Optional[str],
+        self: SELF,
+        client: Optional[object] = None,
+        name: Optional[str] = None,
+        key: Optional[str] = None,
         only_page: Optional[str] = None,
         merge_pages: Optional[str] = None,
         comment_prefix: str = '#',
@@ -75,6 +80,9 @@ class TranslinguerGsheets:
         '''
 
         print('-- Downloading from Google Sheets...')
+
+        if client is None:
+            client = self._google_auth()
 
         if name is not None:
             document = client.open(name)

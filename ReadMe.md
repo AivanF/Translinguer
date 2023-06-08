@@ -19,17 +19,19 @@ My typical translating process consists of these steps:
 - Export texts to a required format (json, ini, cfg, csv)
 
 # Usage
-Here is the simplest example:
+This is a simple example:
 ```py
 from translinguer import Translinguer
 trans = Translinguer()
 trans.load_from_gsheets(key="__XYZ__")
-trans.output_path("__file_path__")
+trans.validate(raise_error=True)
+trans.save_cfg("__file_path__")
 ```
 
-[Here you can find more powerful usage](https://github.com/AivanF/factorio-Mining-Drones-Remastered/blob/main/scripts/locales.py).
+[Here is a more powerful usage](https://github.com/AivanF/factorio-Mining-Drones-Remastered/blob/main/scripts/locales.py).
 
-You can easily extend Translinguer with your own validation or formats for reading/writing.
+You can easily extend Translinguer with your own formats for reading/writing or validation
+(e.g. to check that all entries from your source code are present or ensure some project-specific consistency).
 
 
 # ToDo List
@@ -43,19 +45,29 @@ Core:
 - Allow to have separate languages for pages
 - Add unit-tests
 - Add Google Translate / ChatGPT API usage
+- Allow import multiple files with different languages (get rid of `self.texts =` outside of base init)
 
 Formats:
 - Allow saving to Google Sheets
 - Allow parsing CSV files
-- Allow import multiple files with different languages
-- Export to iOS / Android locale files
-  With multiple mappings from key to components?
+- Export to iOS / Android locale files. With multiple mappings from key to components?
 
 
 # Contributing
-Please follow this guide
+Please follow this guide.
 
-## Methods naming convention for mixin classes
+### New formats
+
+On adding new formats support, keep existing mixin classes typing approach and methods naming convention described below.
+
+"Private" methods should have file type in their names to avoid collisions.
+
+Type-specific settings must be passed as method arguments (see `...` in the naming convention), not into base's properties (cache is the only except).
+
+### Naming convention
+
+Public methods naming convention for new file types:
+
 - `from_TYPE...(content: str, ...)` – parse content of a format
 - `to_TYPE...(output_path, ...) -> str` – save file of a format
 
@@ -64,8 +76,3 @@ Please follow this guide
 
 - `load_from_TYPE...(...)` – load from external resource (like google cloud)
 - `save_to_TYPE...(...)` – load from external resource (like google cloud)
-
-## Other
-"Private" methods should have type in their names to avoid collisions.
-
-Type-specific settings must be passed as method arguments (see `...` in the naming convention), not into base's properties (cache is the only except).

@@ -1,13 +1,18 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Union, Optional
 import os
 import codecs
-from .base import TranslinguerBase as base, Page, Section
+from .base import TranslinguerBase, Page, Section
 from .utils import dict_get, dict_get_reversed
+
+if TYPE_CHECKING:
+    SELF = Union[TranslinguerBase, 'TranslinguerCfg']
+else:
+    SELF = Any
 
 
 class TranslinguerCfg:
     def save_cfg(
-        self: base, output_path: str, only_page: Optional[str] = None,
+        self: SELF, output_path: str, only_page: Optional[str] = None,
     ):
         # Sections from embedded sections
         print('-- Saving to CFG files...')
@@ -34,7 +39,7 @@ class TranslinguerCfg:
         if done_pages == 0:
             raise ValueError('Nothing is written')
 
-    def _parse_cfg(self: base, page, lng, data):
+    def _parse_cfg(self: SELF, page, lng, data):
         result = 0
         page: Page = dict_get(self.texts, page)
         section: Section = dict_get(page, '')
@@ -60,7 +65,7 @@ class TranslinguerCfg:
                 result += 1
         return result
 
-    def load_cfg(self: base, input_path):
+    def load_cfg(self: SELF, input_path):
         print('-- Parsing CFG files...')
         result = 0
         self.texts = {}
