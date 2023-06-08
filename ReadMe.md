@@ -171,6 +171,14 @@ You can easily customise or extend Translinguer with:
   - To check that all entries from your source code are present.
     You can see it in the real example mentioned above.
   - To ensure some project-specific consistency
+
+
+# Install
+Already wanna try it out? 😁
+```bash
+pip install Translinguer
+# If you also wanna use Google Sheets:
+pip install gspread
 ```
 
 
