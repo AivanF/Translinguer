@@ -118,7 +118,7 @@ class TranslinguerGsheets:
             else:
                 page = self.get_page(sheet.title)
                 section = page.get_section('')
-            if len(page.languages) < len(languages):
+            if page.languages is not None and len(page.languages) < len(languages):
                 page.languages = languages
 
             for row in content:
